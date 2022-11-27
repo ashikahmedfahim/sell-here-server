@@ -184,6 +184,18 @@ async function run() {
             }
         });
 
+        app.get('/categories/:id/products', async (req, res) => {
+            try {
+                const { id } = req.params;
+                const productsCollection = client.db('sell-here').collection('products');
+                const query = { categoryId: ObjectId(id) };
+                const products = await productsCollection.find(query).toArray();
+                res.send(products);
+            } catch (error) {
+                res.status(500).send(error);
+            }
+        });
+
         app.get('/my-products', verifyToken, isSeller, async (req, res) => {
             try {
                 const { email } = req.user;
@@ -209,6 +221,16 @@ async function run() {
             }
         });
 
+        app.get('/advertised-products', async (req, res) => {
+            try {
+                const productsCollection = client.db('sell-here').collection('products');
+                const query = { isAdvertised: true };
+                const products = await productsCollection.find(query).toArray();
+                res.send(products);
+            } catch (error) {
+                res.status(500).send(error);
+            }
+        });
 
         app.post('/products', verifyToken, isSeller, upload.single('image'), async (req, res) => {
             try {
@@ -234,7 +256,7 @@ async function run() {
                     resalePrice,
                     yearsOfUse,
                     imageUrls: `${ServerUrl}/${req.file.path}`,
-                    categoryID: ObjectId(category),
+                    categoryId: ObjectId(category),
                     description,
                     condition,
                     mobile,
