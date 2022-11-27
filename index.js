@@ -189,7 +189,19 @@ async function run() {
                 const { id } = req.params;
                 const productsCollection = client.db('sell-here').collection('products');
                 const query = { categoryId: ObjectId(id) };
-                const products = await productsCollection.find(query).toArray();
+                // products with seller info
+                const products = await productsCollection.aggregate([
+                    { $match: query },
+                    {
+                        $lookup: {
+                            from: 'users',
+                            localField: 'userId',
+                            foreignField: '_id',
+                            as: 'seller'
+                        }
+                    },
+                    { $unwind: '$seller' }
+                ]).toArray();
                 res.send(products);
             } catch (error) {
                 res.status(500).send(error);
@@ -240,6 +252,7 @@ async function run() {
                     originalPrice,
                     resalePrice,
                     yearsOfUse,
+                    yearOfPurchase,
                     category,
                     description,
                     condition,
@@ -255,7 +268,8 @@ async function run() {
                     originalPrice,
                     resalePrice,
                     yearsOfUse,
-                    imageUrls: `${ServerUrl}/${req.file.path}`,
+                    yearOfPurchase,
+                    imageUrl: `${ServerUrl}/${req.file.path}`,
                     categoryId: ObjectId(category),
                     description,
                     condition,
