@@ -64,6 +64,22 @@ const isSeller = (req, res, next) => {
     }
 }
 
+const isAdminORSeller = (req, res, next) => {
+    if (req.user.accountType === 'admin' || req.user.accountType === 'seller') {
+        next();
+    } else {
+        res.sendStatus(401);
+    }
+}
+
+const isBuyer = (req, res, next) => {
+    if (req.user.accountType === 'buyer') {
+        next();
+    } else {
+        res.sendStatus(401);
+    }
+}
+
 const client = new MongoClient(uri);
 async function run() {
     try {
@@ -244,6 +260,20 @@ async function run() {
             }
         });
 
+        app.patch('/advertised-products/:id', verifyToken, isSeller, async (req, res) => {
+            try {
+                const { id } = req.params;
+                const productsCollection = client.db('sell-here').collection('products');
+                const query = { _id: ObjectId(id) };
+                const update = { $set: { isAdvertised: true } };
+                const result = await productsCollection.updateOne(query, update);
+                res.send(result);
+            } catch (error) {
+                res.status(500).send(error);
+            }
+        });
+
+
         app.post('/products', verifyToken, isSeller, upload.single('image'), async (req, res) => {
             try {
                 const {
@@ -278,7 +308,8 @@ async function run() {
                     createdAt: new Date(),
                     isSold: false,
                     isAdvertised: false,
-                    isReported: false
+                    isReported: false,
+                    bookings: []
                 });
                 res.send(result);
             } catch (error) {
@@ -286,13 +317,40 @@ async function run() {
             }
         });
 
-        app.delete('/products/:id', verifyToken, isAdmin, async (req, res) => {
+        app.delete('/products/:id', verifyToken, isAdminORSeller, async (req, res) => {
             try {
                 const { id } = req.params;
                 const productsCollection = client.db('sell-here').collection('products');
                 const result = await productsCollection.deleteOne({ _id: ObjectId(id) });
                 res.send(result);
             } catch (error) {
+                res.status(500).send(error);
+            }
+        });
+
+        app.post('/orders', verifyToken, isBuyer, async (req, res) => {
+            try {
+                const { product: productId } = req.body;
+                console.log(productId);
+                const usersCollection = client.db('sell-here').collection('users');
+                const user = await usersCollection
+                    .findOne({ email: req.user.email });
+                const productsCollection = client.db('sell-here').collection('products');
+                const product = await productsCollection.findOne({ _id: ObjectId(productId) });
+                const newBooking = {
+                    buyerId: ObjectId(user._id),
+                    mobile: req.body.mobile,
+                    location: req.body.location,
+                };
+                bookings = [...product.bookings, newBooking];
+                const result = await productsCollection.updateOne(
+                    { _id: ObjectId(productId) },
+                    { $set: { bookings } }
+                );
+                console.log(result);
+                res.send(result);
+            } catch (error) {
+                console.log(error);
                 res.status(500).send(error);
             }
         });
