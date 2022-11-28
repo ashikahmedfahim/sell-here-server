@@ -271,6 +271,19 @@ async function run() {
             }
         });
 
+        app.patch('/reported-products/:id', verifyToken, isBuyer, async (req, res) => {
+            try {
+                const { id } = req.params;
+                const productsCollection = client.db('sell-here').collection('products');
+                const query = { _id: ObjectId(id) };
+                const update = { $set: { isReported: true } };
+                const result = await productsCollection.updateOne(query, update);
+                res.send(result);
+            } catch (error) {
+                res.status(500).send(error);
+            }
+        });
+
         app.get('/advertised-products', async (req, res) => {
             try {
                 const productsCollection = client.db('sell-here').collection('products');
