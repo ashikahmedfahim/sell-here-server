@@ -143,6 +143,7 @@ async function run() {
             try {
                 const blogsCollection = client.db('sell-here').collection('blogs');
                 const blogs = await blogsCollection.find().toArray();
+                res.send(blogs);
             } catch (error) {
                 res.status(500).send(error);
             }
