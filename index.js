@@ -238,6 +238,25 @@ async function run() {
             }
         });
 
+        app.get('/my-orders', verifyToken, isBuyer, async (req, res) => {
+            try {
+                const { email } = req.user;
+                const usersCollection = client.db('sell-here').collection('users');
+                const user = await usersCollection.findOne({
+                    email: email
+                });
+                const productsCollection = client.db('sell-here').collection('products');
+                const query = { buyerId: ObjectId(user._id) };
+                //search buyerId in products bookings array
+                const products = await productsCollection.find(
+                    { bookings: { $elemMatch: { buyerId: ObjectId(user._id) } } }
+                ).toArray();
+                res.send(products);
+            } catch (error) {
+                res.status(500).send(error);
+            }
+        });
+
         app.get('/reported-products', verifyToken, isAdmin, async (req, res) => {
             try {
                 const productsCollection = client.db('sell-here').collection('products');
