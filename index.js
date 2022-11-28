@@ -247,10 +247,13 @@ async function run() {
                 });
                 const productsCollection = client.db('sell-here').collection('products');
                 const query = { buyerId: ObjectId(user._id) };
-                //search buyerId in products bookings array
-                const products = await productsCollection.find(
+                let products = await productsCollection.find(
                     { bookings: { $elemMatch: { buyerId: ObjectId(user._id) } } }
                 ).toArray();
+                products = products.map(product => {
+                    product.buyerId.toString() == user._id.toString() ? product.isOwner = true : product.isOwner = false;
+                    return product;
+                });
                 res.send(products);
             } catch (error) {
                 res.status(500).send(error);
@@ -370,6 +373,26 @@ async function run() {
                 res.send(result);
             } catch (error) {
                 console.log(error);
+                res.status(500).send(error);
+            }
+        });
+
+        app.patch('/buy-now/:id', verifyToken, isBuyer, async (req, res) => {
+            try {
+                const { id } = req.params;
+                const usersCollection = client.db('sell-here').collection('users');
+                const user = await usersCollection.findOne({ email: req.user.email });
+                const productsCollection = client.db('sell-here').collection('products');
+                const query = { _id: ObjectId(id) };
+                const update = {
+                    $set: {
+                        isSold: true,
+                        buyerId: ObjectId(user._id),
+                    }
+                };
+                const result = await productsCollection.updateOne(query, update);
+                res.send(result);
+            } catch (error) {
                 res.status(500).send(error);
             }
         });
