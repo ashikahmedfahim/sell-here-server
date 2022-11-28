@@ -204,7 +204,7 @@ async function run() {
             try {
                 const { id } = req.params;
                 const productsCollection = client.db('sell-here').collection('products');
-                const query = { categoryId: ObjectId(id) };
+                const query = { categoryId: ObjectId(id), isSold: false };
                 // products with seller info
                 const products = await productsCollection.aggregate([
                     { $match: query },
