@@ -143,7 +143,6 @@ async function run() {
             try {
                 const blogsCollection = client.db('sell-here').collection('blogs');
                 const blogs = await blogsCollection.find().toArray();
-                res.send(blogs);
             } catch (error) {
                 res.status(500).send(error);
             }
@@ -251,7 +250,7 @@ async function run() {
                     { bookings: { $elemMatch: { buyerId: ObjectId(user._id) } } }
                 ).toArray();
                 products = products.map(product => {
-                    product.buyerId.toString() == user._id.toString() ? product.isOwner = true : product.isOwner = false;
+                    product?.buyerId?.toString() == user._id.toString() ? product.isOwner = true : product.isOwner = false;
                     return product;
                 });
                 res.send(products);
@@ -287,7 +286,7 @@ async function run() {
         app.get('/advertised-products', async (req, res) => {
             try {
                 const productsCollection = client.db('sell-here').collection('products');
-                const query = { isAdvertised: true };
+                const query = { isAdvertised: true, isSold: false };
                 const products = await productsCollection.find(query).toArray();
                 res.send(products);
             } catch (error) {
@@ -366,7 +365,6 @@ async function run() {
         app.post('/orders', verifyToken, isBuyer, async (req, res) => {
             try {
                 const { product: productId } = req.body;
-                console.log(productId);
                 const usersCollection = client.db('sell-here').collection('users');
                 const user = await usersCollection
                     .findOne({ email: req.user.email });
@@ -382,10 +380,8 @@ async function run() {
                     { _id: ObjectId(productId) },
                     { $set: { bookings } }
                 );
-                console.log(result);
                 res.send(result);
             } catch (error) {
-                console.log(error);
                 res.status(500).send(error);
             }
         });
